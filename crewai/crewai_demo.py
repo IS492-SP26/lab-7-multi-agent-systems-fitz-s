@@ -243,10 +243,12 @@ def create_flight_agent(destination: str, trip_dates: str):
              f"({trip_dates}), considering dates, airlines, prices, and flight durations. "
              f"Use real data from flight booking sites to provide accurate, current pricing.",
         backstory="You are an experienced flight specialist with deep knowledge of "
-                  "airline schedules, pricing patterns, and travel routes. You excel at "
-                  "finding the best flight options that balance cost and convenience. "
-                  "You have booked thousands of flights and know the best times to fly. "
-                  "You always research current prices and use real booking site data.",
+                  "airline schedules, pricing patterns, and travel routes. "
+                  "You always prioritize direct flights over connections. You focus on budget "
+                  "airlines and cost savings above all. You have booked thousands of flights and "
+                  "know the best times to fly on a budget. You always research current prices "
+                  "and use real booking site data, but your first recommendation is always the "
+                  "cheapest direct option available.",
         tools=[search_flight_prices],
         verbose=True,
         allow_delegation=False
@@ -310,6 +312,24 @@ def create_budget_agent(destination: str):
                   "compromising the travel experience. You research actual current prices "
                   "and provide realistic budget estimates.",
         tools=[search_travel_costs],
+        verbose=True,
+        allow_delegation=False
+    )
+
+
+def create_local_expert_agent(destination: str):
+    """Create the Local Expert agent that provides insider knowledge (Exercise 3: 5th agent)."""
+    return Agent(
+        role="Local Expert",
+        goal=f"Provide insider local knowledge about {destination} that only a resident would know, "
+             f"including hidden gems, cultural tips, safety advice, and seasonal considerations.",
+        backstory=f"You are a long-time resident of {destination} who has deep knowledge of "
+                  f"local culture, customs, hidden gems, and practical tips that tourists "
+                  f"usually miss. You know the best local restaurants that aren't in guidebooks, "
+                  f"the cultural etiquette visitors should follow, safety tips for specific areas, "
+                  f"and seasonal advice. You pride yourself on helping travelers experience "
+                  f"{destination} like a local, not just a tourist.",
+        tools=[search_attractions_activities],
         verbose=True,
         allow_delegation=False
     )
@@ -397,6 +417,23 @@ def create_budget_task(budget_agent, destination: str, trip_duration: str):
     )
 
 
+def create_local_expert_task(local_expert_agent, destination: str, trip_duration: str):
+    """Define the local expert task (Exercise 3: 5th task)."""
+    return Task(
+        description=f"As a local expert on {destination}, provide insider knowledge that will "
+                   f"enhance the {trip_duration} trip experience. Include: "
+                   f"1) Hidden gems and off-the-beaten-path experiences not in typical guidebooks, "
+                   f"2) Cultural etiquette and customs visitors should know, "
+                   f"3) Safety tips and common tourist mistakes to avoid, "
+                   f"4) Best local food experiences and restaurants, "
+                   f"5) Seasonal considerations and weather-specific advice for the travel dates.",
+        agent=local_expert_agent,
+        expected_output=f"A comprehensive local insider guide for {destination} covering hidden gems, "
+                       f"cultural tips, safety advice, local food recommendations, and "
+                       f"seasonal considerations for a {trip_duration} visit"
+    )
+
+
 # ============================================================================
 # CREW ORCHESTRATION
 # ============================================================================
@@ -454,16 +491,19 @@ def main(destination: str = "Iceland", trip_duration: str = "5 days",
     print()
 
     # Create agents with destination parameters
-    print("[1/4] Creating Flight Specialist Agent (researches real flights)...")
+    print("[1/5] Creating Flight Specialist Agent (researches real flights)...")
     flight_agent = create_flight_agent(destination, trip_dates)
 
-    print("[2/4] Creating Accommodation Specialist Agent (researches real hotels)...")
+    print("[2/5] Creating Accommodation Specialist Agent (researches real hotels)...")
     hotel_agent = create_hotel_agent(destination, trip_dates)
 
-    print("[3/4] Creating Travel Planner Agent (researches real attractions)...")
+    print("[3/5] Creating Travel Planner Agent (researches real attractions)...")
     itinerary_agent = create_itinerary_agent(destination, trip_duration)
 
-    print("[4/4] Creating Financial Advisor Agent (analyzes real costs)...")
+    print("[4/5] Creating Local Expert Agent (provides insider knowledge)...")
+    local_expert_agent = create_local_expert_agent(destination)
+
+    print("[5/5] Creating Financial Advisor Agent (analyzes real costs)...")
     budget_agent = create_budget_agent(destination)
 
     print("\n✅ All agents created successfully!")
@@ -474,6 +514,7 @@ def main(destination: str = "Iceland", trip_duration: str = "5 days",
     flight_task = create_flight_task(flight_agent, destination, trip_dates, departure_city)
     hotel_task = create_hotel_task(hotel_agent, destination, trip_dates)
     itinerary_task = create_itinerary_task(itinerary_agent, destination, trip_duration, trip_dates)
+    local_expert_task = create_local_expert_task(local_expert_agent, destination, trip_duration)
     budget_task = create_budget_task(budget_agent, destination, trip_duration)
 
     print("Tasks created successfully!")
@@ -481,12 +522,12 @@ def main(destination: str = "Iceland", trip_duration: str = "5 days",
 
     # Create the crew with sequential task execution
     print("Forming the Travel Planning Crew...")
-    print("Task Sequence: FlightAgent → HotelAgent → ItineraryAgent → BudgetAgent")
+    print("Task Sequence: FlightAgent → HotelAgent → ItineraryAgent → LocalExpert → BudgetAgent")
     print()
 
     crew = Crew(
-        agents=[flight_agent, hotel_agent, itinerary_agent, budget_agent],
-        tasks=[flight_task, hotel_task, itinerary_task, budget_task],
+        agents=[flight_agent, hotel_agent, itinerary_agent, local_expert_agent, budget_agent],
+        tasks=[flight_task, hotel_task, itinerary_task, local_expert_task, budget_task],
         verbose=True,
         process="sequential"  # Sequential task execution
     )

@@ -56,20 +56,20 @@ class GroupChatInterviewPlatform:
         # Research Agent - starts the conversation with market analysis
         self.research_agent = autogen.AssistantAgent(
             name="ResearchAgent",
-            system_message="""You are a market research analyst specializing in AI-powered recruitment technology.
+            system_message="""You are a market research analyst specializing in AI-powered employee onboarding technology.
 Your role in this group discussion is to START the conversation by providing competitive landscape analysis.
 
 Your responsibilities:
-- Analyze 3-4 major competitors in AI interview platforms (HireVue, Pymetrics, Codility, Interviewing.io)
+- Analyze 3-4 major competitors in AI-powered employee onboarding tools (Deel, Rippling, BambooHR, WorkBright)
 - Summarize their key features, strengths, and weaknesses
-- Identify current market trends in AI-powered recruiting
-- Note unmet market needs and gaps
+- Identify current market trends in AI-powered employee onboarding
+- Note unmet market needs and gaps in the onboarding space
 
 When you present your findings, be specific with competitor names, features, and data points.
 After presenting your research, invite the AnalysisAgent to identify opportunities based on your findings.
 Keep your response focused and under 400 words.""",
             llm_config=self.llm_config,
-            description="A market research analyst who provides competitive landscape analysis and identifies market gaps in AI interview platforms.",
+            description="A market research analyst who provides competitive landscape analysis and identifies market gaps in AI-powered employee onboarding tools.",
         )
 
         # Analysis Agent - builds on research to identify opportunities
@@ -110,6 +110,25 @@ Keep your response focused and under 400 words.""",
             description="A product designer who creates feature blueprints and user journeys based on identified market opportunities.",
         )
 
+        # Cost Analyst Agent - evaluates financial feasibility (Exercise 3: 5th agent)
+        self.cost_analyst = autogen.AssistantAgent(
+            name="CostAnalyst",
+            system_message="""You are a financial analyst specializing in SaaS product economics.
+Your role in this group discussion is to EVALUATE the financial feasibility of the proposed product.
+
+Your responsibilities:
+- When the BlueprintAgent presents the product design, analyze the development and operational costs
+- Estimate pricing tiers and revenue projections
+- Identify the most cost-effective features to build first
+- Suggest a monetization strategy (freemium, subscription tiers, enterprise licensing)
+
+Reference specific features from the BlueprintAgent and market data from earlier discussion.
+After presenting your cost analysis, invite the ReviewerAgent to provide final recommendations.
+Keep your response focused and under 400 words.""",
+            llm_config=self.llm_config,
+            description="A financial analyst who evaluates product economics, pricing strategy, and development cost feasibility.",
+        )
+
         # Reviewer Agent - reviews and concludes with strategic recommendations
         self.reviewer_agent = autogen.AssistantAgent(
             name="ReviewerAgent",
@@ -117,12 +136,12 @@ Keep your response focused and under 400 words.""",
 Your role in this group discussion is to REVIEW and provide final recommendations.
 
 Your responsibilities:
-- When the BlueprintAgent presents the product design, evaluate its feasibility and market fit
+- When the CostAnalyst and BlueprintAgent present, evaluate feasibility and market fit
 - Provide 3-4 strategic recommendations for launch success
 - Suggest a phased implementation approach (MVP → V1 → V2)
 - Identify key risks and mitigation strategies
 
-Reference specific features from the BlueprintAgent and opportunities from earlier discussion.
+Reference specific features from the BlueprintAgent, cost analysis from CostAnalyst, and opportunities from earlier discussion.
 After your review, conclude the discussion by ending your message with the word TERMINATE.""",
             llm_config=self.llm_config,
             description="A product executive who reviews blueprints, assesses feasibility, and provides strategic recommendations for launch.",
@@ -136,10 +155,11 @@ After your review, conclude the discussion by ending your message with the word 
                 self.research_agent,
                 self.analysis_agent,
                 self.blueprint_agent,
+                self.cost_analyst,
                 self.reviewer_agent,
             ],
             messages=[],
-            max_round=8,
+            max_round=10,
             speaker_selection_method="auto",
             allow_repeat_speaker=False,
             send_introductions=True,
@@ -168,13 +188,14 @@ After your review, conclude the discussion by ending your message with the word 
         print("=" * 80 + "\n")
 
         # Initiate the group chat conversation
-        initial_message = """Team, we need to develop a product plan for an AI-powered interview platform.
+        initial_message = """Team, we need to develop a product plan for an AI-powered employee onboarding platform.
 
 Let's collaborate on this:
 1. ResearchAgent: Start by analyzing the competitive landscape
 2. AnalysisAgent: Then identify key market opportunities
 3. BlueprintAgent: Design the product features and user journey
-4. ReviewerAgent: Finally, review and provide strategic recommendations
+4. CostAnalyst: Evaluate the financial feasibility and pricing strategy
+5. ReviewerAgent: Finally, review and provide strategic recommendations
 
 ResearchAgent, please begin with your market analysis."""
 
